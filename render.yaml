@@ -9,20 +9,16 @@ services:
     plan: free
     envVars:
       - key: HUGGINGFACE_API_TOKEN
-        sync: false   # Set manually in Render dashboard
+        sync: false
       - key: REDIS_URL
         fromService:
           name: deepdive-redis
           type: redis
           property: connectionString
       - key: CHROMA_DIR
-        value: /opt/render/project/src/chroma_data
+        value: /tmp/chroma_data
       - key: UPLOAD_DIR
-        value: /opt/render/project/src/uploads
-    disk:
-      name: deepdive-storage
-      mountPath: /opt/render/project/src
-      sizeGB: 1
+        value: /tmp/uploads
 
   # ── Celery Worker ──────────────────────────────────────────────
   - type: worker
@@ -41,13 +37,9 @@ services:
           type: redis
           property: connectionString
       - key: CHROMA_DIR
-        value: /opt/render/project/src/chroma_data
+        value: /tmp/chroma_data
       - key: UPLOAD_DIR
-        value: /opt/render/project/src/uploads
-    disk:
-      name: deepdive-storage
-      mountPath: /opt/render/project/src
-      sizeGB: 1
+        value: /tmp/uploads
 
   # ── Redis ──────────────────────────────────────────────────────
   - type: redis
