@@ -9,10 +9,10 @@ Vector DB  : ChromaDB (local persistent)
 import asyncio
 from typing import List
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import Chroma
+from langchain.schema import Document
+from langchain.embeddings.base import Embeddings
 from huggingface_hub import InferenceClient
 from pypdf import PdfReader
 

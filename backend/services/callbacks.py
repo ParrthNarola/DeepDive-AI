@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Optional
 from uuid import UUID
 
-from langchain_core.callbacks import AsyncCallbackHandler
+from langchain.callbacks.base import AsyncCallbackHandler
 from ws.manager import manager
 
 
