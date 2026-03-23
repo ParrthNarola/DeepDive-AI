@@ -10,17 +10,19 @@ from ws.manager import manager
 from routers import upload, chat, documents
 from services.resource_monitor import poll_resources
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan — starts background tasks on startup."""
-    task = asyncio.create_task(poll_resources())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     """Application lifespan — starts background tasks on startup."""
+#     task = asyncio.create_task(poll_resources())
+#     yield
+#     task.cancel()
+#     try:
+#         await task
+#     except asyncio.CancelledError:
+#         pass
 
 
 app = FastAPI(
