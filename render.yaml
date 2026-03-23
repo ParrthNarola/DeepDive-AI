@@ -42,7 +42,10 @@ services:
         value: /tmp/uploads
 
   # ── Redis ──────────────────────────────────────────────────────
-  - type: redis
-    name: deepdive-redis
-    plan: free
-    maxmemoryPolicy: noeviction
+- type: redis
+  name: deepdive-redis
+  plan: free
+  maxmemoryPolicy: noeviction
+  ipAllowList:
+    - source: 0.0.0.0/0
+      description: allow all
