@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #16161f;
+    --accent-cyan: #22d3ee;
+    --accent-purple: #a78bfa;
+    --accent-blue: #3b82f6;
+    --accent-emerald: #34d399;
+    --accent-amber: #fbbf24;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: #e2e8f0;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* ── Animated gradient background ──────────────────────────── */
+.gradient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.gradient-bg::before {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  top: -120px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.08) 0%, transparent 70%);
+  animation: float 20s ease-in-out infinite;
+}
+
+.gradient-bg::after {
+  content: "";
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  bottom: -100px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.06) 0%, transparent 70%);
+  animation: float 25s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, -40px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+  75% {
+    transform: translate(40px, 30px) scale(1.03);
+  }
+}
+
+/* ── Glow effects ──────────────────────────────────────────── */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.1), 0 0 60px rgba(34, 211, 238, 0.05);
+}
+
+.glow-text {
+  background: linear-gradient(135deg, #22d3ee, #a78bfa, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

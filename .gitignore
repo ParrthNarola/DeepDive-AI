@@ -62,3 +62,7 @@ htmlcov/
 *.log
 *.sqlite
 .env.production
+
+#frontend
+dump.rdb
+frontend/node_modules/

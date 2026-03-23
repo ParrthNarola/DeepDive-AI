@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://deepdive-api.onrender.com",
+    "NEXT_PUBLIC_WS_URL": "wss://deepdive-api.onrender.com"
+  }
+}
