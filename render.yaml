@@ -1,0 +1,56 @@
+services:
+  # ── FastAPI Backend ────────────────────────────────────────────
+  - type: web
+    name: deepdive-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: HUGGINGFACE_API_TOKEN
+        sync: false   # Set manually in Render dashboard
+      - key: REDIS_URL
+        fromService:
+          name: deepdive-redis
+          type: redis
+          property: connectionString
+      - key: CHROMA_DIR
+        value: /opt/render/project/src/chroma_data
+      - key: UPLOAD_DIR
+        value: /opt/render/project/src/uploads
+    disk:
+      name: deepdive-storage
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+  # ── Celery Worker ──────────────────────────────────────────────
+  - type: worker
+    name: deepdive-celery
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A tasks.celery_app worker --loglevel=info
+    plan: free
+    envVars:
+      - key: HUGGINGFACE_API_TOKEN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: deepdive-redis
+          type: redis
+          property: connectionString
+      - key: CHROMA_DIR
+        value: /opt/render/project/src/chroma_data
+      - key: UPLOAD_DIR
+        value: /opt/render/project/src/uploads
+    disk:
+      name: deepdive-storage
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+  # ── Redis ──────────────────────────────────────────────────────
+  - type: redis
+    name: deepdive-redis
+    plan: free
+    maxmemoryPolicy: noeviction

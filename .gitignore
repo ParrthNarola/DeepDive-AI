@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# ChromaDB data — stored locally, not in git
+backend/chroma_data/
+backend/uploads/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.parcel-cache/
+frontend/.turbo/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.test.local
+
+# Misc
+*.log
+*.sqlite
+.env.production
