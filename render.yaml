@@ -3,6 +3,7 @@ services:
   - type: web
     name: deepdive-api
     runtime: python
+    pythonVersion: 3.11 
     rootDir: backend
     buildCommand: |
       pip install --upgrade pip
@@ -26,6 +27,7 @@ services:
   - type: worker
     name: deepdive-celery
     runtime: python
+    pythonVersion: 3.11 
     rootDir: backend
     buildCommand: |
       pip install --upgrade pip
