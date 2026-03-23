@@ -12,7 +12,7 @@ from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from huggingface_hub import InferenceClient
 from pypdf import PdfReader
 
