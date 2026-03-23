@@ -4,7 +4,9 @@ services:
     name: deepdive-api
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --only-binary=:all: -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
@@ -25,7 +27,9 @@ services:
     name: deepdive-celery
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --only-binary=:all: -r requirements.txt
     startCommand: celery -A tasks.celery_app worker --loglevel=info
     plan: free
     envVars:
