@@ -6,7 +6,7 @@ redis==5.1.0
 
 # ✅ Compatible LangChain stack (NO Pydantic v2)
 langchain==0.0.350
-langchain-community==0.0.20
+langchain-community==0.0.9
 
 # Vector DB
 chromadb==0.4.24
