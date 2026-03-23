@@ -14,8 +14,8 @@ class Settings(BaseSettings):
 
     # ── Storage ───────────────────────────────────────────────
     BASE_DIR: Path = Path(__file__).resolve().parent
-    UPLOAD_DIR: Path = Path(__file__).resolve().parent / "uploads"
-    CHROMA_DIR: Path = Path(__file__).resolve().parent / "chroma_data"
+    UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "uploads"))
+    CHROMA_DIR: Path = Path(os.getenv("CHROMA_DIR", BASE_DIR / "chroma_data"))
 
     # ── Chunking ──────────────────────────────────────────────
     CHUNK_SIZE: int = 1000
