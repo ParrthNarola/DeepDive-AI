@@ -55,7 +55,12 @@ export default function DashboardPage() {
 
         {/* Document list */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
-          <DocumentList selectedId={selectedDocId} onSelect={setSelectedDocId} subscribe={subscribe} />
+          <DocumentList
+            selectedId={selectedDocId}
+            onSelect={setSelectedDocId}
+            onDelete={(id) => { if (selectedDocId === id) setSelectedDocId(null); }}
+            subscribe={subscribe}
+          />
         </div>
 
         {/* Footer */}

@@ -51,3 +51,8 @@ export async function getDocuments(): Promise<{
   if (!res.ok) throw new Error("Failed to fetch documents");
   return res.json();
 }
+
+export async function deleteDocument(docId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/documents/${docId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete document");
+}

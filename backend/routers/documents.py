@@ -1,6 +1,6 @@
-"""Documents router — lists uploaded documents and their status."""
+"""Documents router — lists and deletes uploaded documents."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -18,3 +18,24 @@ async def list_documents():
         for doc_id, d in session_docs.items()
     })
     return {"documents": list(persisted.values())}
+
+
+@router.delete("/documents/{doc_id}")
+async def delete_document(doc_id: str):
+    """Delete a document: removes vectors from Qdrant and the registry entry."""
+    from services.rag_pipeline import _collection_exists, _delete_collection, _delete_doc_meta
+    from routers.upload import documents as session_docs
+
+    collection_name = f"doc_{doc_id}"
+
+    # Remove vector collection from Qdrant
+    if _collection_exists(collection_name):
+        _delete_collection(collection_name)
+
+    # Remove from registry
+    _delete_doc_meta(doc_id)
+
+    # Remove from in-memory session registry
+    session_docs.pop(doc_id, None)
+
+    return {"deleted": doc_id}

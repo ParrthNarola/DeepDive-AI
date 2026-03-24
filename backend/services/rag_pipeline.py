@@ -311,6 +311,28 @@ def save_doc_meta(doc_id: str, filename: str, status: str) -> None:
         pass  # Non-fatal: in-memory registry still works for current session
 
 
+def _delete_doc_meta(doc_id: str) -> None:
+    """Remove a document entry from the Qdrant registry."""
+    try:
+        if not _collection_exists(DOCS_REGISTRY):
+            return
+        point_id = str(uuid.UUID(int=int(doc_id, 16)))
+        if settings.QDRANT_URL:
+            httpx.post(
+                _qdrant_url(f"/collections/{DOCS_REGISTRY}/points/delete"),
+                headers=_qdrant_headers(),
+                json={"points": [point_id]},
+                timeout=10,
+            )
+        else:
+            _memory_store[DOCS_REGISTRY] = [
+                p for p in _memory_store.get(DOCS_REGISTRY, [])
+                if p.get("payload", {}).get("doc_id") != doc_id
+            ]
+    except Exception:
+        pass
+
+
 def load_all_docs() -> List[dict]:
     """Load all document metadata from the Qdrant registry."""
     try:
