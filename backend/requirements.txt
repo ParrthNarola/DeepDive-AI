@@ -19,7 +19,7 @@ langchain-text-splitters>=0.2.0,<0.4.0
 # We skip the client and call Qdrant REST API directly with httpx — no pydantic conflict.
 
 # AI + utils
-huggingface-hub>=0.24.0,<0.27.0
+huggingface-hub>=0.27.0,<0.30.0
 pypdf==4.3.0
 psutil==6.0.0
 

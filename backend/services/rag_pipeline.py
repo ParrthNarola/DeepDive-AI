@@ -39,19 +39,26 @@ class HFAPIEmbeddings(Embeddings):
     """LangChain-compatible embeddings via HF feature-extraction API."""
 
     def __init__(self, model: str, token: str):
-        self._client = InferenceClient(token=token)
         self._model = model
+        self._token = token
+        # HF moved to router.huggingface.co — old api-inference.huggingface.co returns 410 Gone
+        self._url = f"https://router.huggingface.co/hf-inference/models/{model}/pipeline/feature-extraction"
+        self._headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     def _embed(self, texts: List[str]) -> List[List[float]]:
-        results = []
-        for text in texts:
-            vec = self._client.feature_extraction(text, model=self._model)
-            if hasattr(vec, "tolist"):
-                vec = vec.tolist()
-            if isinstance(vec[0], list):
-                vec = vec[0]
-            results.append(vec)
-        return results
+        import httpx as _httpx
+        resp = _httpx.post(
+            self._url,
+            headers=self._headers,
+            json={"inputs": texts, "options": {"wait_for_model": True}},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        # Response shape: [[vec], [vec], ...] or [vec] for single input
+        if isinstance(result[0][0], list):
+            result = [r[0] for r in result]
+        return result
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         return self._embed(texts)
