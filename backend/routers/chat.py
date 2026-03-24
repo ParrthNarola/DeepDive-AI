@@ -1,10 +1,8 @@
 """Chat router — handles RAG queries against processed documents."""
 
-import chromadb
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from services.rag_pipeline import query_rag
-from config import settings
+from services.rag_pipeline import query_rag, _collection_exists, _count_points
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -24,20 +22,17 @@ class ChatResponse(BaseModel):
 async def chat(request: ChatRequest):
     """Query the RAG pipeline for a processed document."""
 
-    # ── Step 1: Verify data exists — no API call needed ──────
+    # ── Verify document exists in Qdrant ─────────────────────
     try:
-        client = chromadb.PersistentClient(path=str(settings.CHROMA_DIR))
         collection_name = f"doc_{request.document_id}"
-        existing_names = [c.name for c in client.list_collections()]
 
-        if collection_name not in existing_names:
+        if not _collection_exists(collection_name):
             raise HTTPException(
                 status_code=404,
                 detail=f"Document '{request.document_id}' not found. Upload and process it first.",
             )
 
-        col = client.get_collection(collection_name)
-        if col.count() == 0:
+        if _count_points(collection_name) == 0:
             raise HTTPException(
                 status_code=404,
                 detail=f"Document '{request.document_id}' is still processing. Please wait for the Activity Feed to show ✅.",
@@ -47,7 +42,7 @@ async def chat(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Storage check error: {str(e)}")
 
-    # ── Step 2: Run RAG query ────────────────────────────────
+    # ── Run RAG query ─────────────────────────────────────────
     try:
         answer = await query_rag(
             query=request.query,
@@ -60,8 +55,8 @@ async def chat(request: ChatRequest):
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    "Gemini API free-tier quota exceeded. "
-                    "Wait ~1 minute and retry, or check your limits at https://ai.dev/rate-limit"
+                    "HuggingFace API free-tier quota exceeded. "
+                    "Wait ~1 minute and retry."
                 ),
             )
         raise HTTPException(status_code=500, detail=f"LLM error: {err[:400]}")
