@@ -14,6 +14,8 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
   const wsRef = useRef<WebSocket | null>(null);
   const subscribersRef = useRef<Set<Subscriber>>(new Set());
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  // Track whether the user manually disconnected (no auto-reconnect)
+  const manualDisconnect = useRef(false);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -22,6 +24,7 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
 
     ws.onopen = () => {
       setConnected(true);
+      manualDisconnect.current = false;
       console.log("[WS] Connected");
     };
 
@@ -36,8 +39,10 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
 
     ws.onclose = () => {
       setConnected(false);
-      console.log("[WS] Disconnected — reconnecting in 2s…");
-      reconnectTimeout.current = setTimeout(connect, 2000);
+      if (!manualDisconnect.current) {
+        console.log("[WS] Disconnected — reconnecting in 2s…");
+        reconnectTimeout.current = setTimeout(connect, 2000);
+      }
     };
 
     ws.onerror = () => {
@@ -55,6 +60,17 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
     };
   }, [connect]);
 
+  const reconnect = useCallback(() => {
+    if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
+    manualDisconnect.current = false;
+    if (wsRef.current) {
+      manualDisconnect.current = true; // suppress auto-reconnect from the close event
+      wsRef.current.close();
+      manualDisconnect.current = false;
+    }
+    connect();
+  }, [connect]);
+
   const subscribe = useCallback((callback: Subscriber) => {
     subscribersRef.current.add(callback);
     return () => {
@@ -62,5 +78,5 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
     };
   }, []);
 
-  return { connected, subscribe };
+  return { connected, subscribe, reconnect };
 }

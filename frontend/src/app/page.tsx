@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Layers, Wifi, WifiOff } from "lucide-react";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { WS_BASE } from "@/lib/api";
 import UploadPanel from "@/components/UploadPanel";
 import ActivityFeed from "@/components/ActivityFeed";
 import ResourceMonitor from "@/components/ResourceMonitor";
@@ -10,7 +11,7 @@ import ChatPanel from "@/components/ChatPanel";
 import DocumentList from "@/components/DocumentList";
 
 export default function DashboardPage() {
-  const { connected, subscribe } = useWebSocket();
+  const { connected, subscribe, reconnect } = useWebSocket(`${WS_BASE}/ws`);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
   const handleUploaded = useCallback((docId: string, _filename: string) => {
@@ -44,6 +45,12 @@ export default function DashboardPage() {
             <>
               <WifiOff className="h-3.5 w-3.5 text-red-400" />
               <span className="text-xs text-red-400/80">Disconnected</span>
+              <button
+                onClick={reconnect}
+                className="ml-auto rounded-md bg-cyan-500/20 px-2 py-0.5 text-[10px] font-medium text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+              >
+                Connect
+              </button>
             </>
           )}
         </div>

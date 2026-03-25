@@ -17,7 +17,13 @@ async def list_documents():
         doc_id: {"doc_id": doc_id, "filename": d["filename"], "status": d["status"]}
         for doc_id, d in session_docs.items()
     })
-    return {"documents": list(persisted.values())}
+    # Normalise to always return "id" (frontend expects this key)
+    return {
+        "documents": [
+            {"id": d["doc_id"], "filename": d["filename"], "status": d["status"]}
+            for d in persisted.values()
+        ]
+    }
 
 
 @router.delete("/documents/{doc_id}")
