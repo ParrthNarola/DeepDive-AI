@@ -2,7 +2,7 @@
 
 Embeddings : sentence-transformers/all-MiniLM-L6-v2 via HF Inference API
              (no PyTorch / no sentence-transformers package needed — API only)
-LLM        : Qwen/Qwen2.5-72B-Instruct via HF free Serverless Inference API
+LLM        : mistralai/Mistral-7B-Instruct-v0.3 via HF free Serverless Inference API
 Vector DB  : Qdrant Cloud (free hosted, persistent across restarts)
 """
 
@@ -429,7 +429,7 @@ async def query_rag(query: str, doc_id: str, history: list | None = None) -> str
     await manager.broadcast({
         "type": "pipeline_event",
         "event": "llm_start",
-        "message": "🧠 Qwen is generating a response…",
+        "message": "🧠 Mistral is generating a response…",
     })
 
     answer_msgs = [

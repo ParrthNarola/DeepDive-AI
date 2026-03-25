@@ -83,7 +83,7 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold text-white/70">Dashboard</h2>
           <div className="ml-auto flex items-center gap-2">
             <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-medium text-white/40">
-              Qwen2.5-72B · all-MiniLM-L6-v2
+              Mistral-7B · all-MiniLM-L6-v2
             </span>
           </div>
         </header>

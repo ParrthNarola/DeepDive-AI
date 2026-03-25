@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # ── Models ────────────────────────────────────────────────
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
-    CHAT_MODEL: str = "Qwen/Qwen2.5-72B-Instruct"
+    CHAT_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.3"
 
     # ── RAG ───────────────────────────────────────────────────
     RETRIEVAL_K: int = 5
