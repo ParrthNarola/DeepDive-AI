@@ -14,7 +14,6 @@ import httpx
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from huggingface_hub import InferenceClient
 from pypdf import PdfReader
 
 from config import settings
@@ -69,7 +68,6 @@ class HFAPIEmbeddings(Embeddings):
 
 # ── Lazy singletons ────────────────────────────────────────────
 _embeddings: HFAPIEmbeddings | None = None
-_hf_client: InferenceClient | None = None
 # In-memory fallback store: collection_name → list of {id, vector, payload}
 _memory_store: dict = {}
 
@@ -84,14 +82,18 @@ def get_embeddings() -> HFAPIEmbeddings:
     return _embeddings
 
 
-def get_hf_client() -> InferenceClient:
-    global _hf_client
-    if _hf_client is None:
-        _hf_client = InferenceClient(
-            model=settings.CHAT_MODEL,
-            token=settings.HUGGINGFACE_API_TOKEN,
-        )
-    return _hf_client
+# ── HF Classic Inference API helpers ───────────────────────────
+# Uses api-inference.huggingface.co directly — bypasses router.huggingface.co
+# which only serves paid providers for Mistral/Qwen/Llama models.
+_HF_INFERENCE_BASE = "https://api-inference.huggingface.co"
+
+
+def _hf_headers() -> dict:
+    return {
+        "Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}",
+        "Content-Type": "application/json",
+        "x-use-cache": "0",
+    }
 
 
 # ── Qdrant REST helpers ────────────────────────────────────────
@@ -373,38 +375,73 @@ def _format_prompt(messages: list) -> str:
 
 # ── LLM helpers ───────────────────────────────────────────────
 def _chat(messages: list, max_tokens: int = 256) -> str:
-    """Synchronous HF text_generation call — uses /models/{model} endpoint (free tier)."""
-    client = get_hf_client()
+    """Call HF classic inference API directly — bypasses the paid router."""
     prompt = _format_prompt(messages)
-    return client.text_generation(
-        prompt,
-        max_new_tokens=max_tokens,
-        temperature=0.2,
-        return_full_text=False,
+    resp = httpx.post(
+        f"{_HF_INFERENCE_BASE}/models/{settings.CHAT_MODEL}",
+        headers=_hf_headers(),
+        json={
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": max_tokens,
+                "temperature": 0.2,
+                "return_full_text": False,
+                "do_sample": True,
+            },
+        },
+        timeout=60,
     )
+    resp.raise_for_status()
+    result = resp.json()
+    if isinstance(result, list):
+        return result[0].get("generated_text", "")
+    return str(result)
 
 
 async def _chat_streaming(messages: list) -> str:
-    """Stream tokens from HF text_generation API and broadcast each via WebSocket."""
-    client = get_hf_client()
-    loop = asyncio.get_running_loop()
+    """Stream tokens from HF classic inference API via SSE and broadcast via WebSocket."""
+    import json as _json
+
     prompt = _format_prompt(messages)
+    full = ""
 
-    def _stream() -> str:
-        full = ""
-        for token in client.text_generation(
-            prompt, max_new_tokens=1024, temperature=0.2,
-            stream=True, return_full_text=False,
-        ):
-            full += token
-            loop.call_soon_threadsafe(
-                lambda t=token: asyncio.ensure_future(
-                    manager.broadcast({"type": "llm_token", "token": t})
-                )
-            )
-        return full
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST",
+            f"{_HF_INFERENCE_BASE}/models/{settings.CHAT_MODEL}",
+            headers=_hf_headers(),
+            json={
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 1024,
+                    "temperature": 0.2,
+                    "return_full_text": False,
+                    "do_sample": True,
+                },
+                "stream": True,
+            },
+        ) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[5:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = _json.loads(data_str)
+                    token = data.get("token", {}).get("text", "")
+                    if token:
+                        full += token
+                        await manager.broadcast({"type": "llm_token", "token": token})
+                except _json.JSONDecodeError:
+                    pass
 
-    return await asyncio.to_thread(_stream)
+    # Fallback: if SSE gave nothing, do a plain blocking call
+    if not full:
+        full = await asyncio.to_thread(_chat, messages, 1024)
+
+    return full
 
 
 # ── Full RAG query ─────────────────────────────────────────────
