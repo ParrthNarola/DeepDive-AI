@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Send, Bot, User, Sparkles, BookOpen } from "lucide-react";
 import { sendChatMessage } from "@/lib/api";
 import type { WSEvent } from "@/hooks/useWebSocket";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Message = {
   id: number;
@@ -118,7 +120,20 @@ export default function ChatPanel({ documentId, subscribe }: Props) {
                   : "bg-white/[0.06] text-white/80"
               }`}
             >
-              {msg.content}
+              {msg.role === "assistant" ? (
+                <div className="prose prose-sm prose-invert max-w-none
+                  prose-headings:text-white/90 prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1
+                  prose-p:my-1 prose-p:leading-relaxed
+                  prose-strong:text-cyan-300 prose-strong:font-semibold
+                  prose-code:text-amber-300 prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                  prose-ul:my-1 prose-ul:pl-4 prose-li:my-0.5
+                  prose-ol:my-1 prose-ol:pl-4
+                  prose-blockquote:border-cyan-500/50 prose-blockquote:text-white/60">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                msg.content
+              )}
             </div>
             {msg.role === "user" && (
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-600/40 to-blue-600/40">
@@ -135,7 +150,13 @@ export default function ChatPanel({ documentId, subscribe }: Props) {
               <Bot className="h-4 w-4 text-cyan-400" />
             </div>
             <div className="max-w-[80%] rounded-2xl bg-white/[0.06] px-4 py-2.5 text-sm leading-relaxed text-white/80">
-              {streamTokens}
+              <div className="prose prose-sm prose-invert max-w-none
+                prose-headings:text-white/90 prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1
+                prose-p:my-1 prose-strong:text-cyan-300 prose-strong:font-semibold
+                prose-code:text-amber-300 prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                prose-ul:my-1 prose-ul:pl-4 prose-li:my-0.5 prose-ol:my-1 prose-ol:pl-4">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamTokens}</ReactMarkdown>
+              </div>
               <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-cyan-400" />
             </div>
           </div>

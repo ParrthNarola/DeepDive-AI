@@ -204,8 +204,14 @@ def _count_points(collection: str) -> int:
 RESEARCHER_SYSTEM = (
     "You are a Senior Research Assistant. Answer questions based ONLY on the "
     "provided context chunks. If the answer is not in the context, clearly say "
-    "you do not have enough information. Always cite the page number (e.g. "
-    "[Page 3]) where you found the information. Be concise and precise."
+    "you do not have enough information.\n\n"
+    "Format your responses using Markdown:\n"
+    "- Use **bold** for key terms and important points\n"
+    "- Use bullet lists or numbered lists where appropriate\n"
+    "- Use headings (### ) to organise longer answers into sections\n"
+    "- Use `code` formatting for technical terms, identifiers, or values\n"
+    "- Always cite the page number (e.g. **[Page 3]**) inline where you found the information\n"
+    "Be concise, structured, and precise."
 )
 
 CONDENSE_SYSTEM = (
@@ -344,27 +350,52 @@ def load_all_docs() -> List[dict]:
         return []
 
 
+# ── Prompt formatter ──────────────────────────────────────────
+def _format_prompt(messages: list) -> str:
+    """Format chat messages into Mistral [INST] prompt for text_generation API."""
+    parts = []
+    system_content = ""
+    for msg in messages:
+        role = msg["role"]
+        content = msg["content"]
+        if role == "system":
+            system_content = content
+        elif role == "user":
+            # Prepend system prompt into the first user turn
+            if system_content:
+                content = f"{system_content}\n\n{content}"
+                system_content = ""
+            parts.append(f"[INST] {content} [/INST]")
+        elif role == "assistant":
+            parts.append(f"{content}</s>")
+    return "".join(parts)
+
+
 # ── LLM helpers ───────────────────────────────────────────────
 def _chat(messages: list, max_tokens: int = 256) -> str:
-    """Synchronous HF chat call — run via asyncio.to_thread."""
+    """Synchronous HF text_generation call — uses /models/{model} endpoint (free tier)."""
     client = get_hf_client()
-    resp = client.chat_completion(messages=messages, max_tokens=max_tokens, temperature=0.2)
-    return resp.choices[0].message.content
+    prompt = _format_prompt(messages)
+    return client.text_generation(
+        prompt,
+        max_new_tokens=max_tokens,
+        temperature=0.2,
+        return_full_text=False,
+    )
 
 
 async def _chat_streaming(messages: list) -> str:
-    """Stream tokens from HF API and broadcast each via WebSocket."""
+    """Stream tokens from HF text_generation API and broadcast each via WebSocket."""
     client = get_hf_client()
     loop = asyncio.get_running_loop()
+    prompt = _format_prompt(messages)
 
     def _stream() -> str:
         full = ""
-        for chunk in client.chat_completion(
-            messages=messages, max_tokens=1024, temperature=0.2, stream=True
+        for token in client.text_generation(
+            prompt, max_new_tokens=1024, temperature=0.2,
+            stream=True, return_full_text=False,
         ):
-            if not chunk.choices:
-                continue
-            token = chunk.choices[0].delta.content or ""
             full += token
             loop.call_soon_threadsafe(
                 lambda t=token: asyncio.ensure_future(
