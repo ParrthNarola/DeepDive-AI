@@ -82,10 +82,9 @@ def get_embeddings() -> HFAPIEmbeddings:
     return _embeddings
 
 
-# ── HF Classic Inference API helpers ───────────────────────────
-# Uses api-inference.huggingface.co directly — bypasses router.huggingface.co
-# which only serves paid providers for Mistral/Qwen/Llama models.
-_HF_INFERENCE_BASE = "https://api-inference.huggingface.co"
+# ── HF Inference API helpers ────────────────────────────────────
+# Uses router.huggingface.co chat completions — api-inference.huggingface.co returns 410 Gone
+_HF_CHAT_URL = "https://router.huggingface.co/v1/chat/completions"
 
 
 def _hf_headers() -> dict:
@@ -353,71 +352,40 @@ def load_all_docs() -> List[dict]:
 
 
 # ── Prompt formatter ──────────────────────────────────────────
-def _format_prompt(messages: list) -> str:
-    """Format chat messages into Mistral [INST] prompt for text_generation API."""
-    parts = []
-    system_content = ""
-    for msg in messages:
-        role = msg["role"]
-        content = msg["content"]
-        if role == "system":
-            system_content = content
-        elif role == "user":
-            # Prepend system prompt into the first user turn
-            if system_content:
-                content = f"{system_content}\n\n{content}"
-                system_content = ""
-            parts.append(f"[INST] {content} [/INST]")
-        elif role == "assistant":
-            parts.append(f"{content}</s>")
-    return "".join(parts)
-
-
 # ── LLM helpers ───────────────────────────────────────────────
 def _chat(messages: list, max_tokens: int = 256) -> str:
-    """Call HF classic inference API directly — bypasses the paid router."""
-    prompt = _format_prompt(messages)
+    """Call HF chat completions API (OpenAI-compatible)."""
     resp = httpx.post(
-        f"{_HF_INFERENCE_BASE}/models/{settings.CHAT_MODEL}",
+        _HF_CHAT_URL,
         headers=_hf_headers(),
         json={
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": max_tokens,
-                "temperature": 0.2,
-                "return_full_text": False,
-                "do_sample": True,
-            },
+            "model": settings.CHAT_MODEL,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.2,
         },
         timeout=60,
     )
     resp.raise_for_status()
-    result = resp.json()
-    if isinstance(result, list):
-        return result[0].get("generated_text", "")
-    return str(result)
+    return resp.json()["choices"][0]["message"]["content"]
 
 
 async def _chat_streaming(messages: list) -> str:
-    """Stream tokens from HF classic inference API via SSE and broadcast via WebSocket."""
+    """Stream tokens from HF chat completions API via SSE and broadcast via WebSocket."""
     import json as _json
 
-    prompt = _format_prompt(messages)
     full = ""
 
     async with httpx.AsyncClient(timeout=120) as client:
         async with client.stream(
             "POST",
-            f"{_HF_INFERENCE_BASE}/models/{settings.CHAT_MODEL}",
+            _HF_CHAT_URL,
             headers=_hf_headers(),
             json={
-                "inputs": prompt,
-                "parameters": {
-                    "max_new_tokens": 1024,
-                    "temperature": 0.2,
-                    "return_full_text": False,
-                    "do_sample": True,
-                },
+                "model": settings.CHAT_MODEL,
+                "messages": messages,
+                "max_tokens": 1024,
+                "temperature": 0.2,
                 "stream": True,
             },
         ) as resp:
@@ -430,11 +398,11 @@ async def _chat_streaming(messages: list) -> str:
                     break
                 try:
                     data = _json.loads(data_str)
-                    token = data.get("token", {}).get("text", "")
+                    token = data["choices"][0]["delta"].get("content", "")
                     if token:
                         full += token
                         await manager.broadcast({"type": "llm_token", "token": token})
-                except _json.JSONDecodeError:
+                except (_json.JSONDecodeError, KeyError, IndexError):
                     pass
 
     # Fallback: if SSE gave nothing, do a plain blocking call
@@ -497,7 +465,7 @@ async def query_rag(query: str, doc_id: str, history: list | None = None) -> str
     await manager.broadcast({
         "type": "pipeline_event",
         "event": "llm_start",
-        "message": "🧠 Mistral is generating a response…",
+        "message": "🧠 Qwen is generating a response…",
     })
 
     answer_msgs = [
