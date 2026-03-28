@@ -18,7 +18,10 @@ export function useWebSocket(url: string = "ws://localhost:8000/ws") {
   const manualDisconnect = useRef(false);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    ) return;
 
     const ws = new WebSocket(url);
 

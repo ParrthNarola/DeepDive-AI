@@ -12,17 +12,14 @@ from services.resource_monitor import poll_resources
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan — starts background tasks on startup."""
+    task = asyncio.create_task(poll_resources())
     yield
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     """Application lifespan — starts background tasks on startup."""
-#     task = asyncio.create_task(poll_resources())
-#     yield
-#     task.cancel()
-#     try:
-#         await task
-#     except asyncio.CancelledError:
-#         pass
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
